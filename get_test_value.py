@@ -1,10 +1,9 @@
 import asyncio
-from aiocoap import *
+import aiocoap
 
 async def main():
-    context = await Context.create_client_context()
-
-    request = Message(code=GET, uri='coap://californium.eclipseprojects.io/obs')
+    context = await aiocoap.Context.create_client_context()
+    request = aiocoap.Message(code=aiocoap.GET, uri='coap://californium.eclipseprojects.io/test')
 
     try:
         response = await context.request(request).response
