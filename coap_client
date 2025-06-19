@@ -1,0 +1,22 @@
+# coap_client.py
+import asyncio
+from aiocoap import Context, Message, GET
+from datetime import datetime
+
+async def get_temperature():
+    context = await Context.create_client_context()
+
+    while True:
+        request = Message(code=GET, uri='coap://127.0.0.1/temperature')
+        try:
+            response = await context.request(request).response
+            value = response.payload.decode('utf-8')
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            print(f"[{timestamp}] 🌡️ Temperature: {value}")
+        except Exception as e:
+            print("Error:", e)
+
+        await asyncio.sleep(5)  # Query every 5 seconds
+
+if __name__ == "__main__":
+    asyncio.run(get_temperature())
