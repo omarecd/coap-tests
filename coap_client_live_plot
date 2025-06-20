@@ -1,0 +1,56 @@
+import asyncio
+import matplotlib.pyplot as plt
+from aiocoap import Context, Message, GET
+from datetime import datetime
+from collections import deque
+
+# Devices
+ports = [5683, 5684, 5685, 5686, 5687]
+device_data = {port: deque(maxlen=20) for port in ports}  # recent temperatures
+timestamps = deque(maxlen=20)
+
+# Matplotlib setup
+plt.ion()
+fig, ax = plt.subplots()
+lines = {port: ax.plot([], [], label=f'Device {port}')[0] for port in ports}
+ax.set_ylim(15, 35)
+ax.set_xlabel("Time")
+ax.set_ylabel("Temperature (°C)")
+ax.legend()
+
+async def get_and_plot():
+    context = await Context.create_client_context()
+
+    while True:
+        now = datetime.now().strftime("%H:%M:%S")
+        timestamps.append(now)
+
+        for port in ports:
+            uri = f'coap://127.0.0.1:{port}/temperature'
+            request = Message(code=GET, uri=uri)
+
+            try:
+                response = await context.request(request).response
+                value = float(response.payload.decode('utf-8').replace('°C', '').strip())
+                device_data[port].append(value)
+            except Exception as e:
+                print(f"Error with port {port}: {e}")
+                device_data[port].append(None)
+
+        # Update plot
+        ax.clear()
+        ax.set_ylim(15, 35)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Temperature (°C)")
+
+        for port in ports:
+            ax.plot(list(timestamps), list(device_data[port]), label=f'Device {port}')
+
+        ax.legend()
+        plt.draw()
+        plt.pause(0.1)
+
+        await asyncio.sleep(5)
+
+if __name__ == "__main__":
+    asyncio.run(get_and_plot())
